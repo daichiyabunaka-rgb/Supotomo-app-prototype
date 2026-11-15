@@ -1,11 +1,11 @@
 {
-    "name": "ニーアキャット（猫とも）",
-    "short_name": "ニーアキャット",
+    "name": "スポとも！",
+    "short_name": "スポとも！",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#6D4C41",
     "theme_color": "#6D4C41",
-    "description": "猫を飼っている飼い主さん同士でつながる猫とも探しアプリ（プロトタイプ）",
+    "description": "スポーツ好き同士でつながる、スポーツ仲間探しアプリ（プロトタイプ）",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
