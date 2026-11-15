@@ -90,6 +90,8 @@ begin
   delete from public.costume_exchanges where poster_id = auth.uid();
   delete from public.parts_exchanges where poster_id = auth.uid();
   delete from public.gear_exchanges where poster_id = auth.uid();
+  delete from public.instrument_exchanges where poster_id = auth.uid();
+  delete from public.bath_goods_exchanges where poster_id = auth.uid();
   delete from public.sports_goods_exchanges where poster_id = auth.uid();
   delete from public.profiles where id = auth.uid();
 
