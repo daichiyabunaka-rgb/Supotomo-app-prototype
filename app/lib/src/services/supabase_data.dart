@@ -801,11 +801,11 @@ extension CommunityData on SupabaseData {
 
   // ---------------------------------------------------- protected cats
 
-  SportsGoodsExchange _rowToSportsGoodsExchange(Map<String, dynamic> row) {
+  SportsReport _rowToSportsReport(Map<String, dynamic> row) {
     final gh = row['location_geohash'] as String?;
     final (lat, lng) =
         gh == null ? (0.0, 0.0) : geohashDecode(gh);
-    return SportsGoodsExchange(
+    return SportsReport(
       id: row['id'] as String,
       posterId: row['poster_id'] as String,
       kind: row['kind'] as String,
@@ -820,20 +820,20 @@ extension CommunityData on SupabaseData {
     );
   }
 
-  /// 近くのゆずりあい・交換の登録（geohash 先頭4桁一致 = 約20km四方）
-  Future<List<SportsGoodsExchange>> fetchSportsGoodsExchanges(AppUser me) async {
+  /// 近くの近況報告の登録（geohash 先頭4桁一致 = 約20km四方）
+  Future<List<SportsReport>> fetchSportsReports(AppUser me) async {
     final rows = await _c
-        .from('sports_goods_exchanges')
+        .from('sports_reports')
         .select()
         .order('created_at', ascending: false)
         .limit(100);
     final myPrefix = geohashEncode(me.lat, me.lng, precision: 4);
-    final cats = <SportsGoodsExchange>[];
+    final cats = <SportsReport>[];
     for (final row in (rows as List).cast<Map<String, dynamic>>()) {
       try {
         final gh = row['location_geohash'] as String?;
         if (gh == null || !gh.startsWith(myPrefix)) continue;
-        cats.add(_rowToSportsGoodsExchange(row));
+        cats.add(_rowToSportsReport(row));
       } catch (_) {
         // 壊れた行は読み飛ばす
       }
@@ -841,8 +841,8 @@ extension CommunityData on SupabaseData {
     return cats;
   }
 
-  /// ゆずりあい・交換を登録する
-  Future<SportsGoodsExchange> createSportsGoodsExchange({
+  /// 近況報告を登録する
+  Future<SportsReport> createSportsReport({
     required String kind,
     required String itemDescription,
     required String areaName,
@@ -851,7 +851,7 @@ extension CommunityData on SupabaseData {
     required double lng,
     String? photoPath,
   }) async {
-    final rows = await _c.from('sports_goods_exchanges').insert({
+    final rows = await _c.from('sports_reports').insert({
       'poster_id': _myId,
       'kind': kind,
       'item_description': itemDescription,
@@ -860,11 +860,11 @@ extension CommunityData on SupabaseData {
       'photo_path': photoPath,
       'location_geohash': geohashEncode(lat, lng, precision: 6),
     }).select();
-    return _rowToSportsGoodsExchange((rows as List).first as Map<String, dynamic>);
+    return _rowToSportsReport((rows as List).first as Map<String, dynamic>);
   }
 
   /// 登録を解決済みにする（本人のみ、RLSで担保）
-  Future<void> closeSportsGoodsExchange(String id) async {
-    await _c.from('sports_goods_exchanges').update({'closed': true}).eq('id', id);
+  Future<void> closeSportsReport(String id) async {
+    await _c.from('sports_reports').update({'closed': true}).eq('id', id);
   }
 }

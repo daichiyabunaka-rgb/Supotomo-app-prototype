@@ -273,7 +273,7 @@ class AppState extends ChangeNotifier {
 
   /// リリース（ベータ配布）ビルドではモックデータを出さない。
   /// モックの一般ユーザー・店舗・シード募集・シードコミュニティ・
-  /// シードのゆずりあい・交換は開発・テスト（デバッグ）ビルドのみ。
+  /// シードの近況報告は開発・テスト（デバッグ）ビルドのみ。
   bool get _useMockData => !kReleaseMode;
 
   void _rebuildMockUsers() {
@@ -296,7 +296,7 @@ class AppState extends ChangeNotifier {
     anchorLat = lat;
     anchorLng = lng;
     _rebuildMockUsers();
-    _replaceMockSportsGoodsExchanges();
+    _replaceMockSportsReports();
     if (me != null) {
       // ビジネスユーザーは店舗の位置（プロフィール位置）を GPS で
       // 更新しない（登録時に設定した位置に固定）
@@ -338,7 +338,7 @@ class AppState extends ChangeNotifier {
   }
 
   /// モックモードのドメイン初期化（端末内スナップショットの復元つき）。
-  /// 自分のデータ（募集・ゆずりあい・コミュニティ・部屋）を復元し、
+  /// 自分のデータ（募集・近況報告・コミュニティ・部屋）を復元し、
   /// 開発ビルドではシードが無い場合だけモックデータを補う。
   Future<void> _initMockDomain() async {
     _persistBusy = true;
@@ -356,7 +356,7 @@ class AppState extends ChangeNotifier {
           .toList()));
     }
     _seedMockCommunities();
-    _seedMockSportsGoodsExchanges();
+    _seedMockSportsReports();
   }
 
   /// ログアウト
@@ -379,7 +379,7 @@ class AppState extends ChangeNotifier {
   Timer? _persistDebounce;
   bool _persistBusy = false;
 
-  /// リリース（配布）ビルドのモックモードでは、自分の募集・ゆずりあい・交換・
+  /// リリース（配布）ビルドのモックモードでは、自分の募集・近況報告・
   /// コミュニティ・部屋・メッセージを端末内に保存し、再起動後も残す。
   /// 開発・テストビルドではオフ（シード・テスト動作を壊さないため）。
   /// Supabase モードでは Postgres が永続化するため対象外。
@@ -429,9 +429,9 @@ class AppState extends ChangeNotifier {
       'communities': _communities.map(persist.communityToMap).toList(),
       'events': events.map(persist.communityEventToMap).toList(),
       // シード(id付き cx-seed-)は保存しない（再ログイン時に再生成される）
-      'partsExchanges': _partsExchanges
+      'sportsReports': _sportsReports
           .where((p) => p.posterId == me!.id && !p.id.startsWith('cx-seed-'))
-          .map(persist.partsExchangeToMap)
+          .map(persist.sportsReportToMap)
           .toList(),
     };
   }
@@ -492,11 +492,11 @@ class AppState extends ChangeNotifier {
           .whereType<CommunityEvent>()) {
         _eventsByCommunity.putIfAbsent(e.communityId, () => []).add(e);
       }
-      _partsExchanges
+      _sportsReports
         ..clear()
-        ..addAll(((pruned['partsExchanges'] as List?) ?? const [])
-            .map((e) => persist.partsExchangeFromMap(e as Map<String, dynamic>))
-            .whereType<SportsGoodsExchange>());
+        ..addAll(((pruned['sportsReports'] as List?) ?? const [])
+            .map((e) => persist.sportsReportFromMap(e as Map<String, dynamic>))
+            .whereType<SportsReport>());
       return true;
     } catch (_) {
       // 壊れたスナップショットは無視して普通に初期化
@@ -585,9 +585,9 @@ class AppState extends ChangeNotifier {
           }
         }
       }
-      // ゆずりあい・交換
-      final cats = await supabaseData.fetchSportsGoodsExchanges(me!);
-      _partsExchanges
+      // 近況報告
+      final cats = await supabaseData.fetchSportsReports(me!);
+      _sportsReports
         ..clear()
         ..addAll(cats);
       for (final d in cats) {
@@ -1367,31 +1367,31 @@ class AppState extends ChangeNotifier {
 
   // ------------------------------------------------- protected cats
 
-  final List<SportsGoodsExchange> _partsExchanges = [];
+  final List<SportsReport> _sportsReports = [];
 
-  /// 解決済みとブロック済みユーザーの投稿を除いたゆずりあい・交換の一覧
+  /// 解決済みとブロック済みユーザーの投稿を除いた近況報告の一覧
   /// （距離近い順）
-  List<SportsGoodsExchange> get partsExchanges {
+  List<SportsReport> get sportsReports {
     if (me == null) return const [];
-    return _partsExchanges
+    return _sportsReports
         .where((p) => !p.closed && !isBlocked(p.posterId))
         .toList()
-      ..sort((a, b) => _partsExchangeDistance(a).compareTo(_partsExchangeDistance(b)));
+      ..sort((a, b) => _sportsReportDistance(a).compareTo(_sportsReportDistance(b)));
   }
 
-  double _partsExchangeDistance(SportsGoodsExchange p) {
+  double _sportsReportDistance(SportsReport p) {
     if (me == null) return double.infinity;
     return haversineKm(me!.lat, me!.lng, p.lat, p.lng);
   }
 
   /// 登録までの粗い距離バンド
-  String partsExchangeDistanceLabel(SportsGoodsExchange p) {
-    final km = _partsExchangeDistance(p);
+  String sportsReportDistanceLabel(SportsReport p) {
+    final km = _sportsReportDistance(p);
     return km.isFinite ? distanceLabel(km) : '';
   }
 
-  /// ゆずりあい・交換（give / wanted / trade）を登録する
-  Future<SportsGoodsExchange> registerSportsGoodsExchange({
+  /// 近況報告（match / post / event）を登録する
+  Future<SportsReport> registerSportsReport({
     required String kind,
     required String itemDescription,
     required String areaName,
@@ -1406,7 +1406,7 @@ class AppState extends ChangeNotifier {
               photoPath.startsWith('http'))
           ? photoPath
           : null;
-      final created = await supabaseData.createSportsGoodsExchange(
+      final created = await supabaseData.createSportsReport(
         kind: kind,
         itemDescription: itemDescription,
         areaName: areaName,
@@ -1415,11 +1415,11 @@ class AppState extends ChangeNotifier {
         lat: me!.lat,
         lng: me!.lng,
       );
-      _partsExchanges.insert(0, created);
+      _sportsReports.insert(0, created);
       notifyListeners();
       return created;
     }
-    final item = SportsGoodsExchange(
+    final item = SportsReport(
       id: 'pd-${_seq++}',
       posterId: me!.id,
       kind: kind,
@@ -1431,14 +1431,14 @@ class AppState extends ChangeNotifier {
       lng: me!.lng,
       createdAt: _now(),
     );
-    _partsExchanges.insert(0, item);
+    _sportsReports.insert(0, item);
     notifyListeners();
     return item;
   }
 
   /// 登録を解決済みにする（相手へ渡った、必要なくなった等）
-  Future<void> closeSportsGoodsExchange(String id) async {
-    for (final p in _partsExchanges) {
+  Future<void> closeSportsReport(String id) async {
+    for (final p in _sportsReports) {
       if (p.id == id) {
         p.closed = true;
         break;
@@ -1447,24 +1447,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     if (_remote) {
       try {
-        await supabaseData.closeSportsGoodsExchange(id);
+        await supabaseData.closeSportsReport(id);
       } catch (_) {
         // 無視（再取得で同期される）
       }
     }
   }
 
-  /// モック: シードのゆずりあい・交換を現在地周囲に配置する
-  void _seedMockSportsGoodsExchanges() {
-    if (_partsExchanges.any((p) => p.id.startsWith('cx-seed-'))) return;
-    _partsExchanges.addAll(buildSeedSportsGoodsExchanges(_now(), anchorLat, anchorLng));
+  /// モック: シードの近況報告を現在地周囲に配置する
+  void _seedMockSportsReports() {
+    if (_sportsReports.any((p) => p.id.startsWith('cx-seed-'))) return;
+    _sportsReports.addAll(buildSeedSportsReports(_now(), anchorLat, anchorLng));
   }
 
   /// 実 GPS で現在地が変わったら、シードの投稿も作り直す（開発ビルドのみ）
-  void _replaceMockSportsGoodsExchanges() {
+  void _replaceMockSportsReports() {
     if (_remote || !_useMockData) return;
-    _partsExchanges.removeWhere((p) => p.id.startsWith('cx-seed-'));
-    _partsExchanges.addAll(buildSeedSportsGoodsExchanges(_now(), anchorLat, anchorLng));
+    _sportsReports.removeWhere((p) => p.id.startsWith('cx-seed-'));
+    _sportsReports.addAll(buildSeedSportsReports(_now(), anchorLat, anchorLng));
   }
 
   // ------------------------------------------------------------ rooms / DM

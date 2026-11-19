@@ -291,7 +291,7 @@ List<Recruitment> seedRecruitments(DateTime now, List<AppUser> generalUsers) {
   ];
 }
 
-/// ゆずりあい・交換のシード。anchor（現在地）からの相対距離で配置する。
+/// 近況報告のシード。anchor（現在地）からの相対距離で配置する。
 /// id が 'cx-seed-' 始まりのものは GPS 更新のたびに再配置される
 /// （AppState.applyGps を参照）。
 class _ExchangeSeedSpec {
@@ -313,11 +313,11 @@ const List<_ExchangeSeedSpec> _exchangeSeedSpecs = [
   _ExchangeSeedSpec(
     'cx-seed-1',
     'u-baseball-kyo',
-    'give',
-    '野球グラブ（使用済み・手入れ済み）',
+    'match',
+    '練習試合で2得点を決めました',
     'スポーツセンター 中央 周辺',
-    'サイズが合わなくなったので、'
-        '使ってくださる方にゆずります。手渡し前提です。',
+    '接戦で勝てました。'
+        '次のメンバーも募集しています。',
     0.3,
     -0.6,
     Duration(hours: 2),
@@ -325,11 +325,11 @@ const List<_ExchangeSeedSpec> _exchangeSeedSpecs = [
   _ExchangeSeedSpec(
     'cx-seed-2',
     'u-tennis-nana',
-    'wanted',
-    'テニスラケット（練習用）を探しています',
+    'post',
+    '今週末はテニスの練習会に参加します',
     '駅前広場 周辺',
-    '中学1年生用の練習ラケットを探しています。不要用品との'
-        '交換の対応も可能です。DMお待ちしています。',
+    '週末の天気も良さそうなので練習に集中できそうです。'
+        '同じレベルの方とラリーをしたいです。',
     -0.2,
     0.8,
     Duration(hours: 5),
@@ -337,23 +337,23 @@ const List<_ExchangeSeedSpec> _exchangeSeedSpecs = [
   _ExchangeSeedSpec(
     'cx-seed-3',
     'u-golf-miu',
-    'trade',
-    'ドライバーと パターを交換します',
+    'event',
+    '初心者ゴルフコンペに参加してきました',
     '市役所裏の公園 周辺',
-    '番手の好みが変わったので交換希望です。状態は写真で'
-        '送ります。公共の場所で受け渡しできます。',
+    '初めてのコースデビューで緊張しましたが'
+        '楽しく回れました。次回も参加予定です。',
     -0.9,
     -0.3,
     Duration(hours: 26),
   ),
 ];
 
-List<SportsGoodsExchange> buildSeedSportsGoodsExchanges(
+List<SportsReport> buildSeedSportsReports(
     DateTime now, double anchorLat, double anchorLng) {
   final cos = (anchorLat * math.pi / 180.0).abs().clamp(0.01, 1.0);
   return [
     for (final s in _exchangeSeedSpecs)
-      SportsGoodsExchange(
+      SportsReport(
         id: s.id,
         posterId: s.posterId,
         kind: s.kind,
